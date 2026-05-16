@@ -34,8 +34,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ArrowPuzzleTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    GameScreen()
+                Scaffold(modifier = Modifier.fillMaxSize()) {it->
+                    GameBoard()
                 }
             }
         }
@@ -48,120 +48,49 @@ enum class Direction{
     LEFT,
     RIGHT
 }
-data class Cell(val row: Int, val col: Int,val direction: Direction)
+data class Path(val startRow:Int,val startCol:Int,val direciton:List<Direction>)
 
-val dummyBoard = listOf(
-    listOf(
-        Cell(0, 0, Direction.RIGHT),
-        Cell(0, 1, Direction.DOWN),
-        Cell(0, 2, Direction.LEFT),
-        Cell(0, 3, Direction.UP),
-    ),
-//    listOf(
-//        Cell(1, 0, Direction.UP),
-//        Cell(1, 1, Direction.RIGHT),
-//        Cell(1, 2, Direction.DOWN),
-//        Cell(1, 3, Direction.LEFT),
-//    ),
-//    listOf(
-//        Cell(2, 0, Direction.LEFT),
-//        Cell(2, 1, Direction.UP),
-//        Cell(2, 2, Direction.RIGHT),
-//        Cell(2, 3, Direction.DOWN),
-//    )
-)
+val samplePath = Path(startRow = 2, startCol = 2, direciton = listOf( Direction.RIGHT,
+    Direction.UP,
+    Direction.RIGHT
+    ))
+
+
+fun gridToPixel(row:Int,col:Int,spacing:Float):Offset{
+    return Offset(col*spacing+spacing,row*spacing+spacing)
+}
 
 @Composable
-fun GameScreen(){
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        dummyBoard.forEach { row->Row{
-            row.forEach { cell->
-                ArrowCell(cell)
+fun GameBoard(){
+    val rows = 10
+    val cols = 10
+    val spacing = 80f
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(400.dp).background(color = Color.Yellow)) {
+            for (row in 0 until rows){
+                for (col in 0 until cols){
+                    val x = col*spacing+spacing
+                    val y = row*spacing+spacing
+                    drawCircle(color = Color.Black, radius = 4f,center=Offset(x,y))
+                }
             }
-        }}
-    }
-}
+            var currentRow = samplePath.startRow
+            var currentCol = samplePath.startCol
 
-@Composable
-fun ArrowCell(cell: Cell){
-    Box(modifier = Modifier.size(80.dp).padding(4.dp),contentAlignment = Alignment.Center){
-        Box(modifier = Modifier.background(Color.Yellow).fillMaxSize(),)
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawArrow(cell.direction)
-        }
-    }
-}
-
-fun DrawScope.drawArrow(direction: Direction) {
-
-    val padding = 10f
-
-    val centerX = size.width / 2
-    val centerY = size.height / 2
-
-    val start: Offset
-    val end: Offset
-
-    when (direction) {
-
-        Direction.RIGHT -> {
-
-            start = Offset(
-                padding,
-                centerY
-            )
-
-            end = Offset(
-                size.width - padding,
-                centerY
-            )
-        }
-
-        Direction.LEFT -> {
-
-            start = Offset(
-                size.width - padding,
-                centerY
-            )
-
-            end = Offset(
-                padding,
-                centerY
-            )
-        }
-
-        Direction.UP -> {
-
-            start = Offset(
-                centerX,
-                size.height - padding
-            )
-
-            end = Offset(
-                centerX,
-                padding
-            )
-        }
-
-        Direction.DOWN -> {
-
-            start = Offset(
-                centerX,
-                padding
-            )
-
-            end = Offset(
-                centerX,
-                size.height - padding
-            )
+            samplePath.direciton.forEach {direction->
+                val nextCoordinates = when(direction){
+                    Direction.UP->Pair<Int,Int>(currentRow-1,currentCol)
+                    Direction.DOWN->Pair<Int,Int>(currentRow+1,currentCol)
+                    Direction.LEFT->Pair<Int,Int>(currentRow,currentCol-1)
+                    Direction.RIGHT->Pair<Int,Int>(currentRow,currentCol+1)
+                }
+                val currentOffset = gridToPixel(currentRow,currentCol,spacing)
+                val nextOffset = gridToPixel(nextCoordinates.first,nextCoordinates.second,spacing)
+                currentRow = nextCoordinates.first
+                currentCol = nextCoordinates.second
+                drawLine(Color.Blue,currentOffset,nextOffset,strokeWidth = 10f,cap = StrokeCap.Round)
+            }
         }
     }
 
-    drawLine(
-        color = Color.Blue,
-        start = start,
-        end = end,
-        strokeWidth = 8f,
-        cap = StrokeCap.Round
-    )
 }
