@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -26,9 +32,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.arrowpuzzle.ui.theme.ArrowPuzzleTheme
+import java.time.Clock.offset
 import kotlin.io.path.Path
 
 class MainActivity : ComponentActivity() {
@@ -54,14 +62,7 @@ enum class Direction {
 
 data class Path(val startRow: Int, val startCol: Int, val direciton: List<Direction>)
 
-val samplePath = Path(
-    startRow = 2, startCol = 2, direciton = listOf(
-        Direction.RIGHT,
-        Direction.UP,
-        Direction.RIGHT,
-        Direction.DOWN
-    )
-)
+
 
 
 fun gridToPixel(row: Int, col: Int, spacing: Float): Offset {
@@ -73,11 +74,56 @@ fun GameBoard() {
     val rows = 10
     val cols = 10
     val spacing = 80f
+    // store the board in a 2d array, to keep track of which arrow is placed on what coordinate
+    var board = Array(rows) { Array(cols) { 0 } }
+    var samplePath by remember {
+        mutableStateOf(
+            Path(
+                startRow = 2, startCol = 2, direciton = listOf(
+                    Direction.RIGHT,
+                    Direction.UP,
+                    Direction.RIGHT,
+                    Direction.DOWN
+                )
+            )
+        )
+    }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Canvas(
             modifier = Modifier
                 .size(400.dp)
                 .background(color = Color.Yellow)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        for (i in 0 until 4) {
+                            val row = (offset.y / spacing).toInt()
+                            val col = (offset.x / spacing).toInt()
+                            val first = samplePath.direciton[0]
+                            when (first) {
+                                Direction.UP -> {
+                                    samplePath = samplePath.copy(startRow = samplePath.startRow - 1)
+                                }
+
+                                Direction.DOWN -> {
+                                    samplePath = samplePath.copy(startRow = samplePath.startRow + 1)
+                                }
+
+                                Direction.LEFT -> {
+                                    samplePath = samplePath.copy(startCol = samplePath.startCol - 1)
+                                }
+
+                                Direction.RIGHT -> {
+                                    samplePath = samplePath.copy(startCol = samplePath.startCol + 1)
+                                }
+                            }
+                            samplePath = samplePath.copy(
+                                direciton =
+                                    samplePath.direciton.drop(1) + Direction.RIGHT
+                            )
+
+                        }
+                    }
+                }
         ) {
             for (row in 0 until rows) {
                 for (col in 0 until cols) {
@@ -110,6 +156,7 @@ fun GameBoard() {
                     strokeWidth = 10f,
                     cap = StrokeCap.Round
                 )
+                board[currentRow][currentCol] = 1
             }
 
             drawArrowHead(nextOffset, currDirection)
